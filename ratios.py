@@ -1,272 +1,112 @@
 #!/usr/bin/env python
 from collections import namedtuple
-from enum import Enum
+import json
 import argparse
+
+DATA_FILE = 'recipes_bobs_mods_and_others_12232020.json'
+
+with open(DATA_FILE, 'r') as f:
+    data = json.load(f)
 
 Recipe = namedtuple('Recipe',
                     'ingredients,craft_time,machine_type,count,name')
 
-
-class MT(Enum):
-    Assembly = 1
-    Electronics = 2
-    MetalMixing = 3
-    ChemicalFurnace = 4
-    MultiPurposeFurnace = 5
-    ChemicalPlant = 6
-
-
-copper_cable = Recipe(
-    ingredients=['copper_plate'],
-    craft_time=0.5,
-    machine_type={MT.Assembly,
-                  MT.Electronics},
-    count=2,
-    name='Copper Cable',
-)
-
-wooden_board = Recipe(
-    ingredients=['wood'],
-    craft_time=0.5,
-    machine_type={MT.Assembly,
-                  MT.Electronics},
-    count=2,
-    name='Wooden Board',
-)
-
-basic_circuit_board = Recipe(
-    ingredients=[(copper_cable, 3), wooden_board],
-    craft_time=1,
-    machine_type={MT.Assembly,
-                  MT.Electronics},
-    count=1,
-    name='Basic Circuit Board',
-)
-
-iron_gear_wheel = Recipe(
-    ingredients=[('iron_plate', 2)],
-    craft_time=0.5,
-    machine_type={MT.Assembly},
-    count=1,
-    name='Iron Gear Wheel',
-)
-
-iron_pipe = Recipe(
-    ingredients=['iron_plate'],
-    craft_time=0.5,
-    machine_type={MT.Assembly},
-    count=1,
-    name='Iron Pipe',
-)
-
-basic_transport_belt = Recipe(
-    ingredients=['iron_plate', iron_gear_wheel],
-    craft_time=0.5,
-    machine_type={MT.Assembly},
-    count=2,
-    name='Basic Transport Belt',
-)
-
-transport_belt = Recipe(
-    ingredients=[('tin_plate', 2), (iron_gear_wheel, 2), basic_transport_belt],
-    craft_time=0.5,
-    machine_type={MT.Assembly},
-    count=1,
-    name='Transport Belt',
-)
-
-basic_underground_belt = Recipe(
-    ingredients=[('wood', 2), ('stone', 2), (basic_transport_belt, 5)],
-    craft_time=1,
-    machine_type={MT.Assembly},
-    count=2,
-    name='Basic Underground Belt',
-)
-
-underground_belt = Recipe(
-    ingredients=[(iron_gear_wheel, 20), (basic_underground_belt, 2),
-                 ('tin_plate', 14)],
-    craft_time=1,
-    machine_type={MT.Assembly},
-    count=2,
-    name='Underground Belt',
-)
-
-basic_splitter = Recipe(
-    ingredients=[('wood', 4), (copper_cable, 4), (basic_transport_belt, 5),
-                 (iron_gear_wheel, 2)],
-    craft_time=1,
-    machine_type={MT.Assembly},
-    count=1,
-    name='Basic Splitter',
-)
-
-splitter = Recipe(
-    ingredients=[(iron_gear_wheel, 14), basic_splitter, ('tin_plate', 8),
-                 (basic_circuit_board, 5)],
-    craft_time=1,
-    machine_type={MT.Assembly},
-    count=1,
-    name='Splitter',
-)
-
-resin = Recipe(
-    ingredients=['wood'],
-    craft_time=1,
-    machine_type={MT.Assembly},
-    count=1,
-    name='Resin',
-)
-
-solder_plate = Recipe(
-    ingredients=[('tin_plate', 4), ('lead_plate', 7)],
-    craft_time=7,
-    machine_type={MT.MetalMixing},
-    count=11,
-    name='Solder Plate',
-)
-
-solder = Recipe(
-    ingredients=[resin, (solder_plate, 4)],
-    craft_time=2,
-    machine_type={MT.Assembly, MT.Electronics},
-    count=8,
-    name='Solder',
-)
-
-carbon = Recipe(
-    ingredients=['coal', ('water', 5)],
-    craft_time=2,
-    machine_type={MT.ChemicalFurnace, MT.MultiPurposeFurnace},
-    count=2,
-    name='Carbon',
-)
-
-tinned_copper_wire = Recipe(
-    ingredients=[(copper_cable, 3), 'tin_plate'],
-    craft_time=0.5,
-    machine_type={MT.Assembly, MT.Electronics},
-    count=3,
-    name='Tinned Copper Wire',
-)
-
-basic_electronic_components = Recipe(
-    ingredients=[carbon, tinned_copper_wire],
-    craft_time=2,
-    machine_type={MT.Assembly, MT.Electronics},
-    count=5,
-    name='Basic Electronic Components',
-)
-
-basic_electronic_board = Recipe(
-    ingredients=[solder, (basic_electronic_components, 5),
-                 basic_circuit_board],
-    craft_time=1,
-    machine_type={MT.Assembly, MT.Electronics},
-    count=1,
-    name='Basic Electronic Board',
-)
-
-engine_unit = Recipe(
-    ingredients=['steel_plate', iron_gear_wheel, (iron_pipe, 2)],
-    craft_time=10,
-    machine_type={MT.Assembly},
-    count=1,
-    name='Engine Unit',
-)
-
-solar_panel = Recipe(
-    ingredients=[('copper_plate', 4), ('steel_plate', 4),
-                 (basic_electronic_board, 14)],
-    craft_time=10,
-    machine_type={MT.Assembly},
-    count=1,
-    name='Solar Panel',
-)
-
-automation_science_pack = Recipe(
-    ingredients=['copper_plate', iron_gear_wheel],
-    craft_time=5,
-    machine_type={MT.Assembly},
-    count=1,
-    name='Automation Science Pack',
-)
-yellow_science = automation_science_pack
-
-inserter = Recipe(
-    ingredients=['iron_plate', iron_gear_wheel, basic_circuit_board],
-    craft_time=0.5,
-    machine_type={MT.Assembly},
-    count=1,
-    name='Inserter',
-)
-
-automation_science_pack = Recipe(
-    ingredients=[basic_transport_belt, inserter],
-    craft_time=6,
-    machine_type={MT.Assembly},
-    count=1,
-    name='Automation Science Pack',
-)
-red_science = automation_science_pack
-
-battery = Recipe(
-    ingredients=[('sulfuric_acid', 20), ('plastic_bar', 1),
-                 ('lead_plate', 2)],
-    craft_time=4,
-    machine_type={MT.ChemicalPlant},
-    count=1,
-    name='Battery',
-)
-
-accumulator = Recipe(
-    ingredients=[('iron_plate', 2), (battery, 5)],
-    craft_time=10,
-    machine_type={MT.Assembly},
-    count=1,
-    name='Accumulator',
-)
-#######
-
 Machine = namedtuple('Machine',
                      'machine_type,craft_speed,name')
 
-ass1 = Machine(
-    machine_type=MT.Assembly,
-    craft_speed=0.5,
-    name='Assembling Machine 1',
-)
-
-ass2 = Machine(
-    machine_type=MT.Assembly,
-    craft_speed=0.75,
-    name='Assembling Machine 2',
-)
-
-elec1 = Machine(
-    machine_type=MT.Electronics,
-    craft_speed=1,
-    name='Electronics Assembling Machine 1',
-)
-
-mm1 = Machine(
-    machine_type=MT.MetalMixing,
-    craft_speed=1,
-    name='Stone Metal Mixing Furnace',
-)
-
-cf1 = Machine(
-    machine_type=MT.ChemicalFurnace,
-    craft_speed=1,
-    name='Stone Chemical Furnace',
-)
-
-cp1 = Machine(
-    machine_type=MT.ChemicalPlant,
-    craft_speed=1,
-    name='Chemical Plant',
-)
-
+# TODO: unsure if all of these are valid...
+ALIASES = {
+    'advanced-crafting': 'crafting',  # engine only?
+    'crafting-machine': 'crafting',
+    'electronics-machine': 'electronics'
+}
+# TODO(machines): barrelling; crafting-with-fluid;
+MACHINE_T_LOOKUP = {
+    'air-pump': [
+        'air-pump',
+        'air-pump-2',
+        'air-pump-3',
+        'air-pump-4',
+    ],
+    'crafting': [
+        'assembling-machine-1',
+        'assembling-machine-2',
+        'assembling-machine-3',
+        'assembling-machine-4',
+        'assembling-machine-5',
+        'burner-assembling-machine',
+        'steam-assembling-machine',
+        'assembling-machine-6'],
+    'distillery': [
+        'bob-distillery',
+        'bob-distillery-2',
+        'bob-distillery-3',
+        'bob-distillery-4',
+        'bob-distillery-5'
+    ],
+    'bob-greenhouse': ['bob-greenhouse'],
+    'centrifuging': [
+        'centrifuge',
+        'centrifuge-2',
+        'centrifuge-3',
+    ],
+    'chemistry': [
+        'chemical-plant',
+        'chemical-plant-2',
+        'chemical-plant-3',
+        'chemical-plant-4',
+    ],
+    'chemical-furnace': [
+        'fluid-chemical-furnace',
+        'steel-chemical-furnace',
+        'stone-chemical-furnace',
+        'electric-chemical-furnace',
+        'electric-chemical-mixing-furnace',
+        'electric-chemical-mixing-furnace-2',
+    ],
+    'smelting': [
+        'electric-furnace',
+        'electric-furnace-2',
+        'stone-furnace',
+        'fluid-furnace',
+        'steel-furnace',
+        'electric-furnace-3',
+    ],
+    'mixing-furnace': [
+        'electric-mixing-furnace',
+        'steel-mixing-furnace',
+        'stone-mixing-furnace',
+        'fluid-mixing-furnace',
+    ],
+    'electrolysis': [
+        'electrolyser',
+        'electrolyser-2',
+        'electrolyser-3',
+        'electrolyser-4',
+        'electrolyser-5',
+    ],
+    'electronics': [
+        'electronics-machine-1',
+        'electronics-machine-2',
+        'electronics-machine-3'
+    ],
+    'oil-processing': [
+        'oil-refinery',
+        'oil-refinery-2',
+        'oil-refinery-3',
+        'oil-refinery-4'
+    ],
+    'rocket-building': ['rocket-silo'],
+    'void-fluid': ['void-pump'],
+    # 'water-pump',
+    # 'water-pump-2',
+    # 'water-pump-3',
+    # 'water-pump-4'
+}
+# reverse...
+MACHINE_T_LOOKUP_REV = {vv: k
+                        for k, v in MACHINE_T_LOOKUP.items()
+                        for vv in v}
 
 def solve(item, rate, machines, ignore, indent=0):
     # count: items per second
