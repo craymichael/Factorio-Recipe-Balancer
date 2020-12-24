@@ -3,8 +3,13 @@ from collections import namedtuple
 import json
 import argparse
 import re
+import os
 
-DATA_FILE = 'recipes_bobs_mods_and_others_12232020.json'
+# TODO: hard-coded filename
+DATA_FILE = os.path.join(
+    os.path.dirname(__file__), 'data',
+    'recipes_bobs_mods_and_others_12232020.json'
+)
 
 with open(DATA_FILE, 'r') as f:
     data = json.load(f)
