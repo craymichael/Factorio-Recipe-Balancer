@@ -41,4 +41,5 @@ a file called `recipes.json` to your game directory `~/.factorio/script-output` 
 in `%APPDATA%\Factorio` or whatever it ends up being on Windows. The script should be able to handle
 recipes that does not require new machines beyond what it already knows about...
 
-Kudos to [this repo](https://github.com/antropod/factorio) for the script!
+Kudos to [this repo](https://github.com/antropod/factorio) for the baseline script, from which I minorly
+extended.
