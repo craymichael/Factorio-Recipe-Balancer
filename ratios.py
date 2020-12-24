@@ -2,17 +2,12 @@
 from collections import namedtuple
 import json
 import argparse
+import re
 
 DATA_FILE = 'recipes_bobs_mods_and_others_12232020.json'
 
 with open(DATA_FILE, 'r') as f:
     data = json.load(f)
-
-Recipe = namedtuple('Recipe',
-                    'ingredients,craft_time,machine_type,count,name')
-
-Machine = namedtuple('Machine',
-                     'machine_type,craft_speed,name')
 
 # TODO: unsure if all of these are valid...
 ALIASES = {
@@ -98,25 +93,57 @@ MACHINE_T_LOOKUP = {
     ],
     'rocket-building': ['rocket-silo'],
     'void-fluid': ['void-pump'],
-    # 'water-pump',
-    # 'water-pump-2',
-    # 'water-pump-3',
-    # 'water-pump-4'
+    'water-pump': [
+        'water-pump',
+        'water-pump-2',
+        'water-pump-3',
+        'water-pump-4',
+    ]
 }
 # reverse...
 MACHINE_T_LOOKUP_REV = {vv: k
                         for k, v in MACHINE_T_LOOKUP.items()
                         for vv in v}
 
-def solve(item, rate, machines, ignore, indent=0):
+Recipe = namedtuple('Recipe',
+                    'ingredients,craft_time,machine_type,count,name')
+
+Machine = namedtuple('Machine',
+                     'machine_type,craft_speed,name')
+
+recipes = {}
+machines = {}
+
+for item, meta in data.items():
+    products = meta['products']
+    if len(products) != 1 or products[0]['name'] != meta['name']:
+        # print('Unsupported: skipping', item)  # TODO!!!
+        continue
+
+    recipes[item] = Recipe(
+        ingredients=[(v['name'], v['amount']) for v in meta['ingredients']],
+        craft_time=meta['energy'],  # energy is time in seconds...
+        machine_type=ALIASES.get(meta['category'], meta['category']),
+        count=products[0]['amount'],
+        name=meta['name'],
+    )
+
+    if 'speed' in meta:
+        machines[item] = Machine(
+            machine_type=MACHINE_T_LOOKUP_REV[item],
+            craft_speed=meta['speed'],
+            name=meta['name'],
+        )
+
+
+def solve(item, rate, machines, ignore, indent=0, sep=''):
     # count: items per second
-    spaces = ' ' * indent
-    if type(item) is str:
-        print(spaces + item, f'({rate:.2f}/s)', '?')
+    spaces = sep[:-2] + '|_' if sep else ''
+    if item in ignore or item not in recipes:
+        print(spaces + item, f'({rate:.2f}/s)', '<ignored>')
         return
-    if item in ignore:
-        print(spaces + item.name, f'({rate:.2f}/s)', '?')
-        return
+
+    item = recipes[item]
     # calc times needed to be crafted per second
     # figure out best machine
     m_ok = [m for m in machines if m.machine_type in item.machine_type]
@@ -129,15 +156,12 @@ def solve(item, rate, machines, ignore, indent=0):
     print(spaces + item.name, f'({rate:.2f}/s)', '|', m_best.name, 'x',
           crafts_needed)
 
-    for ing in item.ingredients:
-        if type(ing) is tuple:
-            solve(ing[0], crafts_needed * ing[1] / item.craft_time,
-                  machines, ignore, indent + 2)
-        else:
-            solve(ing, crafts_needed / item.craft_time,
-                  machines, ignore, indent + 2)
-    # print(spaces + f'-- end {item.name} --')
+    for i, ing in enumerate(item.ingredients):  # ing should be a tuple...
+        sep_next = (sep + '  ' if (i + 1) == len(item.ingredients) else
+                    sep + '| ')
 
+        solve(ing[0], crafts_needed * ing[1] / item.craft_time,
+              machines, ignore, indent + 2, sep_next)
 
 parser = argparse.ArgumentParser(  # noqa
     description='Factorio recipe calculator',
@@ -148,17 +172,41 @@ parser.add_argument('--rate', '-r', type=float, default=1,
                     help='rate of production of target recipe')
 parser.add_argument('--recipe', '-R', required=True,
                     help='the recipe to make')
-parser.add_argument('--ignore', '-i', nargs='+', default=(),
+parser.add_argument('--ignore', '-i', nargs='+', default=[],
                     help='do not show ingredients for these recipes')
+parser.add_argument('--ignore-basic', '-I', action='store_true',
+                    help='ignore basic items you have on your bus, probably')
 
 args = parser.parse_args()
 
-# recipe = basic_circuit_board
-# recipe = transport_belt
-recipe = eval(args.recipe)
+recipe = args.recipe
 
-avail_machines = [ass1, ass2, elec1, mm1, cf1, cp1]
+# TODO: this is hard-coded...maybe move to config file
+avail_machines = [
+    'assembling-machine-1',
+    'assembling-machine-2',
+    'chemical-plant',
+    'electronics-machine-1',
+    'bob-distillery',
+    'stone-mixing-furnace',
+    'steel-mixing-furnace',
+    'stone-chemical-furnace',
+    'steel-chemical-furnace',
+    'steel-furnace',
+]
+avail_machines = [machines[m] for m in avail_machines]
 rate = args.rate  # items per second
-ignore = [eval(i) for i in args.ignore]
+ignore = args.ignore
+
+if args.ignore_basic:
+    partial_words = ['plate']
+    # whole_words = ['coal']
+    re_base = r'([^a-zA-Z]|^){}([^a-zA-Z]|$)'
+    rx_ignore = re.compile(
+        '(' + '|'.join(re_base.format(pw) for pw in partial_words) + ')'
+    )
+    ignore.extend(
+        r for r in recipes if rx_ignore.search(r)
+    )
 
 solve(recipe, rate, avail_machines, ignore)
