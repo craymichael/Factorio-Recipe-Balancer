@@ -109,6 +109,12 @@ MACHINE_T_LOOKUP = {
 MACHINE_T_LOOKUP_REV = {vv: k
                         for k, v in MACHINE_T_LOOKUP.items()
                         for vv in v}
+# TODO: integrate...
+other_aliases = {
+    'electronic-components': 'transistor',
+    'module-processor-board': 'circuit-board',  # TODO(conflict)
+    'productivity-processor': 'electronic-circuit-board',
+}
 
 Recipe = namedtuple('Recipe',
                     'ingredients,craft_time,machine_type,count,name')
@@ -125,13 +131,24 @@ for item, meta in data.items():
         # print('Unsupported: skipping', item)  # TODO!!!
         continue
 
-    recipes[item] = Recipe(
-        ingredients=[(v['name'], v['amount']) for v in meta['ingredients']],
-        craft_time=meta['energy'],  # energy is time in seconds...
-        machine_type=ALIASES.get(meta['category'], meta['category']),
-        count=products[0]['amount'],
-        name=meta['name'],
-    )
+    if item == 'solder-alloy':  # lol TODO this bad
+        item_recipe = Recipe(
+            ingredients=[('tin-plate', 4), ('lead-plate', 7)],
+            craft_time=meta['energy'],  # energy is time in seconds...
+            machine_type=ALIASES.get(meta['category'], meta['category']),
+            count=products[0]['amount'],
+            name=meta['name'],
+        )
+    else:
+        item_recipe = Recipe(
+            ingredients=[(v['name'], v['amount'])
+                         for v in meta['ingredients']],
+            craft_time=meta['energy'],  # energy is time in seconds...
+            machine_type=ALIASES.get(meta['category'], meta['category']),
+            count=products[0]['amount'],
+            name=meta['name'],
+        )
+    recipes[item] = item_recipe
 
     if 'speed' in meta:
         machines[item] = Machine(
@@ -155,9 +172,8 @@ def solve(item, rate, machines, ignore, indent=0, sep=''):
     assert m_ok, 'no valid machines available'
     m_best = max(m_ok, key=lambda m: m.craft_speed)
     # figure out number of machines needed
-    crafts_needed = rate / (item.count *
-                            m_best.craft_speed / item.craft_time)
-    # print(spaces + f'-- start {item.name} --')
+    craft_rate = rate / item.count
+    crafts_needed = craft_rate / (m_best.craft_speed / item.craft_time)
     print(spaces + item.name, f'({rate:.2f}/s)', '|', m_best.name, 'x',
           crafts_needed)
 
@@ -165,7 +181,8 @@ def solve(item, rate, machines, ignore, indent=0, sep=''):
         sep_next = (sep + '  ' if (i + 1) == len(item.ingredients) else
                     sep + '| ')
 
-        solve(ing[0], crafts_needed * ing[1] / item.craft_time,
+        ing_rate = craft_rate * ing[1]
+        solve(ing[0], ing_rate,
               machines, ignore, indent + 2, sep_next)
 
 parser = argparse.ArgumentParser(  # noqa
@@ -175,24 +192,37 @@ parser = argparse.ArgumentParser(  # noqa
 
 parser.add_argument('--rate', '-r', type=float, default=1,
                     help='rate of production of target recipe')
-parser.add_argument('--recipe', '-R', required=True,
+parser.add_argument('--recipe', '-R',
                     help='the recipe to make')
 parser.add_argument('--ignore', '-i', nargs='+', default=[],
                     help='do not show ingredients for these recipes')
 parser.add_argument('--ignore-basic', '-I', action='store_true',
                     help='ignore basic items you have on your bus, probably')
+parser.add_argument('--list', '-L', action='store_true',
+                    help='list all recipes then exit')
 
 args = parser.parse_args()
 
 recipe = args.recipe
+if args.list:
+    import sys
+
+    for r in sorted(recipes.keys()):
+        print(r)
+    sys.exit()
+elif recipe is None:
+    sys.exit('--recipe is required.')
 
 # TODO: this is hard-coded...maybe move to config file
 avail_machines = [
     'assembling-machine-1',
     'assembling-machine-2',
+    # 'assembling-machine-3',
     'chemical-plant',
     'electronics-machine-1',
+    'electronics-machine-2',
     'bob-distillery',
+    'bob-greenhouse',
     'stone-mixing-furnace',
     'steel-mixing-furnace',
     'stone-chemical-furnace',
